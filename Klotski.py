@@ -9,10 +9,11 @@ import sys
 #import vimpdb
 from sets import Set
 #import numpy as np
+import random
 import Queue
 import copy
 
-steps = Queue.LifoQueue()
+steps = Queue.Queue()
 
 
 class Dot(object):
@@ -118,13 +119,14 @@ class Square(object):
 
 class Gamestate(object):
     seenMask = Set()
-    def __init__(self,mask):
+    def __init__(self,mask,depth):
         if len(mask) == 20 and all((mask[x] in 'VvSsHhDd0') for x in range(20)):
             if self.parsemask(mask) == False:
                 print "Wrong initial game"
                 sys.exit()
             else:
                 self.mask = mask
+                self.depth = depth
                 print len(self.elements)
         else:
             print "wrong size of initial game"
@@ -210,20 +212,28 @@ class Gamestate(object):
 
 
     ##
-    # @brief get the next legal move 
+    # @brief get all of the next legal moves
     #
-    # @return the next state after move, False if no possible moves
-    def nextMove(self):
+    # @return the a queue that contains all the next possible moves
+    def nextMoves(self):
         emptyspaces = [(i,j) for j in range(4) for i in range(5) if self.mask[i*4+j] == '0']
         #pdb.set_trace()
-        next = copy.deepcopy(self)
+        searchdir = [1,2,3,4]
+        moves = list()
         for i in range(len(emptyspaces)):
             emptyx = emptyspaces[i][0]
             emptyy = emptyspaces[i][1]
             
-            searchdir = np.random.permutation([1,2,3,4])
+            #do a random permutation to the searchdir to increase the speed
+            randi = random.randint(0,3)
+            randj = random.randint(0,3)
+            tmp = searchdir[i]
+            searchdir[randi] = searchdir[randj]
+            searchdir[randj] = tmp
+            
             for j in range(len(searchdir)):
                 dir = searchdir[j]
+                next = copy.deepcopy(self)
                 if dir == 1:
                     # look for the element on top of the empty spaces
                     indice = self.locateElement(emptyx-1,emptyy)
@@ -231,10 +241,10 @@ class Gamestate(object):
                     if indice != -1:
                         next.elements[indice].moveDown()
                         next.mask = next.toMask()
-                        if (next.mask != False) and (next.toMask() not in Gamestate.seenMask):
-                            return next
-                        else:
-                            next.elements[indice].moveUp()
+                        next.depth = self.depth + 1
+                        if (next.mask != False) and (next.mask not in Gamestate.seenMask):
+                            moves.append(next)
+
                 elif dir == 2:
                     # look for the element below the empty spaces
                     indice = self.locateElement(emptyx+1,emptyy)
@@ -242,10 +252,10 @@ class Gamestate(object):
                     if indice != -1:
                         next.elements[indice].moveUp()
                         next.mask = next.toMask()
-                        if (next.mask != False) and (next.toMask() not in Gamestate.seenMask):
-                            return next
-                        else:
-                            next.elements[indice].moveDown()
+                        next.depth = self.depth + 1
+                        if (next.mask != False) and (next.mask not in Gamestate.seenMask):
+                            moves.append(next)
+
                 elif dir == 3:
                     # look for the element on the left of the empty spaces
                     indice = self.locateElement(emptyx,emptyy-1)
@@ -253,10 +263,9 @@ class Gamestate(object):
                     if indice != -1:
                         next.elements[indice].moveRight()
                         next.mask = next.toMask()
-                        if (next.mask != False) and (next.toMask() not in Gamestate.seenMask):
-                            return next
-                        else:
-                            next.elements[indice].moveLeft()
+                        next.depth = self.depth + 1
+                        if (next.mask != False) and (next.mask not in Gamestate.seenMask):
+                            moves.append(next)
                 else:
                     # look for the element on the right of the empty spaces
                     indice = self.locateElement(emptyx,emptyy+1)
@@ -264,12 +273,11 @@ class Gamestate(object):
                     if indice != -1:
                         next.elements[indice].moveLeft()
                         next.mask = next.toMask()
-                        if (next.mask != False) and (next.toMask() not in Gamestate.seenMask):
-                            return next
-                        else:
-                            next.elements[indice].moveRight()
+                        next.depth = self.depth + 1
+                        if (next.mask != False) and (next.mask not in Gamestate.seenMask):
+                            moves.append(next)
 
-        return False
+        return moves
 
     def isSolved(self):
         indice = [13,14,17,18]
@@ -283,30 +291,30 @@ class Gamestate(object):
 
 
 def solve(game):
-    while game.isSolved() == False:
-        Gamestate.seenMask.add(game.toMask())
-        #pdb.set_trace()
-        next = game.nextMove()
-        if next != False:
-            steps.put(game)
-            game = next
+    steps.put(game)
+    while steps.empty() == False:
+        currentstep = steps.get()
+        Gamestate.seenMask.add(currentstep.toMask())
+        if currentstep.isSolved():
+            print "optimal steps:%d" %currentstep.depth
+            return True
         else:
-            if steps.empty() == False:
-                game = steps.get()
-            else:
-                return False
-    return True
+            moves = currentstep.nextMoves()
+            for i in range(len(moves)):
+                steps.put(moves[i])
+            #pdb.set_trace()
+    return False
 
 if __name__ == "__main__":
     #str = 'VssVVSSVVHHVVDDVD00D'
     str = 'VSSDVSSDVVVDVVVD0HH0'
     #d = Dot(3,5)
-    game = Gamestate(str)
+    game = Gamestate(str,0)
     #print game.toMask()
     res = solve(game)
     #vimpdb.set_trace()
-    print steps.qsize()
-    print res
+    #print steps.qsize()
+    #print res
     #c = list()
     #c.append(Dot(3,4))
     #c.append(Dot(2,5))
