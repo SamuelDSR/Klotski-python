@@ -244,6 +244,7 @@ class Gamestate(object):
                         next.depth = self.depth + 1
                         if (next.mask != False) and (next.mask not in Gamestate.seenMask):
                             moves.append(next)
+                            Gamestate.seenMask.add(next.mask)
 
                 elif dir == 2:
                     # look for the element below the empty spaces
@@ -255,6 +256,7 @@ class Gamestate(object):
                         next.depth = self.depth + 1
                         if (next.mask != False) and (next.mask not in Gamestate.seenMask):
                             moves.append(next)
+                            Gamestate.seenMask.add(next.mask)
 
                 elif dir == 3:
                     # look for the element on the left of the empty spaces
@@ -266,6 +268,7 @@ class Gamestate(object):
                         next.depth = self.depth + 1
                         if (next.mask != False) and (next.mask not in Gamestate.seenMask):
                             moves.append(next)
+                            Gamestate.seenMask.add(next.mask)
                 else:
                     # look for the element on the right of the empty spaces
                     indice = self.locateElement(emptyx,emptyy+1)
@@ -276,6 +279,7 @@ class Gamestate(object):
                         next.depth = self.depth + 1
                         if (next.mask != False) and (next.mask not in Gamestate.seenMask):
                             moves.append(next)
+                            Gamestate.seenMask.add(next.mask)
 
         return moves
 
@@ -292,9 +296,9 @@ class Gamestate(object):
 
 def solve(game):
     steps.put(game)
+    Gamestate.seenMask.add(game.toMask())
     while steps.empty() == False:
         currentstep = steps.get()
-        Gamestate.seenMask.add(currentstep.toMask())
         if currentstep.isSolved():
             print "optimal steps:%d" %currentstep.depth
             return True
@@ -307,14 +311,17 @@ def solve(game):
 
 if __name__ == "__main__":
     #str = 'VssVVSSVVHHVVDDVD00D'
-    str = 'VSSDVSSDVVVDVVVD0HH0'
+    #str = 'VSSDVSSDVVVDVVVD0HH0'
+    #str = '0ss0dssdhhddddhhddhh'
+    str = 'ssvvssvvvdd0vdd0hhhh'
     #d = Dot(3,5)
+    #vimpdb.set_trace()
     game = Gamestate(str,0)
     #print game.toMask()
     res = solve(game)
-    #vimpdb.set_trace()
+
     #print steps.qsize()
-    #print res
+    print res
     #c = list()
     #c.append(Dot(3,4))
     #c.append(Dot(2,5))
